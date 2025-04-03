@@ -1,130 +1,102 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, Copy, RefreshCcw } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-import Head from "next/head"
+import { motion } from "framer-motion"
 
-export default function JuritoApp() {
-  const [file, setFile] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState("")
+export default function JuritoViagemForm() {
+  const [step, setStep] = useState(0)
+  const [form, setForm] = useState({
+    relato: "",
+    nome: "",
+    cpf: "",
+    email: "",
+    cia: "",
+    voo: "",
+    origem: "",
+    destino: "",
+    data_voo: "",
+    oferecido: [],
+    valor: "",
+    cidade_estado: ""
+  })
 
-  async function handleSubmit() {
-    if (!file) {
-      setResult("Nenhum arquivo foi selecionado.")
-      return
-    }
-
-    setLoading(true)
-    const formData = new FormData()
-    formData.append("file", file)
-
-    try {
-      const response = await fetch("https://web-production-192c4.up.railway.app/analisar", {
-        method: "POST",
-        body: formData
-      })
-      const data = await response.json()
-      setResult(data?.resumo || "Não foi possível gerar o resumo.")
-    } catch (err) {
-      setResult("Erro ao se comunicar com o servidor.")
-    } finally {
-      setLoading(false)
-    }
+  function updateField(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }))
   }
 
-  function handleCopy() {
-    if (result) {
-      navigator.clipboard.writeText(result)
-    }
+  function handleCheckbox(value) {
+    setForm(prev => ({
+      ...prev,
+      oferecido: prev.oferecido.includes(value)
+        ? prev.oferecido.filter(v => v !== value)
+        : [...prev.oferecido, value]
+    }))
   }
 
-  function reset() {
-    setResult("")
-    setFile(null)
+  const steps = [
+    <div key="1" className="flex flex-col gap-4">
+      <label className="text-md">Conte o que aconteceu com seu voo:</label>
+      <textarea
+        value={form.relato}
+        onChange={(e) => updateField("relato", e.target.value)}
+        className="w-full p-3 rounded-lg border border-gray-300"
+        rows={5}
+        placeholder="Ex: Meu voo atrasou 6 horas e perdi minha conexão..."
+      />
+    </div>,
+    <div key="2" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <input placeholder="Nome completo" value={form.nome} onChange={(e) => updateField("nome", e.target.value)} className="input" />
+      <input placeholder="CPF" value={form.cpf} onChange={(e) => updateField("cpf", e.target.value)} className="input" />
+      <input placeholder="E-mail" value={form.email} onChange={(e) => updateField("email", e.target.value)} className="input" />
+      <input placeholder="Companhia aérea" value={form.cia} onChange={(e) => updateField("cia", e.target.value)} className="input" />
+      <input placeholder="Número do voo" value={form.voo} onChange={(e) => updateField("voo", e.target.value)} className="input" />
+      <input placeholder="Aeroporto de origem" value={form.origem} onChange={(e) => updateField("origem", e.target.value)} className="input" />
+      <input placeholder="Aeroporto de destino" value={form.destino} onChange={(e) => updateField("destino", e.target.value)} className="input" />
+      <input type="datetime-local" value={form.data_voo} onChange={(e) => updateField("data_voo", e.target.value)} className="input" />
+      <input placeholder="Cidade e estado onde abrirá o processo" value={form.cidade_estado} onChange={(e) => updateField("cidade_estado", e.target.value)} className="input col-span-2" />
+    </div>,
+    <div key="3" className="flex flex-col gap-3">
+      <label className="text-md font-medium">O que a companhia ofereceu?</label>
+      <div className="flex flex-wrap gap-3">
+        {["Hotel", "Alimentação", "Novo voo", "Nada"].map((item) => (
+          <label key={item} className="flex items-center gap-2">
+            <input type="checkbox" checked={form.oferecido.includes(item)} onChange={() => handleCheckbox(item)} />
+            {item}
+          </label>
+        ))}
+      </div>
+      <input placeholder="Quanto você gostaria de receber? (opcional)" value={form.valor} onChange={(e) => updateField("valor", e.target.value)} className="input mt-4" />
+    </div>
+  ]
+
+  function handleNext() {
+    if (step < steps.length - 1) setStep(step + 1)
+  }
+
+  function handleBack() {
+    if (step > 0) setStep(step - 1)
+  }
+
+  function handleSubmit() {
+    console.log("Formulário final:", form)
+    // Aqui você envia pro backend ou chama a IA
   }
 
   return (
-    <>
-      <Head>
-        <title>Jurito — Análise inteligente de contratos</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-10 bg-gradient-to-b from-[#f0f4ff] to-[#dbeafe]">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-lg">
+        <h2 className="text-2xl font-bold mb-6 text-center">✈️ Jurito Viagens</h2>
+        {steps[step]}
 
-      <main className="min-h-screen bg-gradient-to-b from-[#f4f4f4] to-[#e5ecf6] flex flex-col items-center justify-start px-4 py-10">
-        <motion.h1 
-          initial={{ opacity: 0, y: -20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ duration: 0.5 }}
-          className="text-4xl font-bold text-[#1F2937] mb-2"
-        >
-          🦅 Jurito
-        </motion.h1>
-
-        <motion.p 
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }} 
-          transition={{ delay: 0.3 }}
-          className="text-lg text-gray-600 mb-8"
-        >
-          Entenda qualquer contrato com a ajuda da IA.
-        </motion.p>
-
-        <AnimatePresence>
-          {!result && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              exit={{ opacity: 0, y: -10 }} 
-              className="bg-white shadow-xl rounded-2xl p-6 w-full max-w-xl flex flex-col items-center gap-4"
-            >
-              <label className="text-md font-medium text-gray-700">Faça upload do seu contrato (PDF):</label>
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={(e) => setFile(e.target.files && e.target.files.length > 0 ? e.target.files[0] : null)}
-                className="file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#1F2937] file:text-white hover:file:bg-[#374151] cursor-pointer"
-              />
-
-              <button
-                onClick={handleSubmit}
-                disabled={loading || !file}
-                className="mt-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-2 px-6 rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : null}
-                {loading ? "Analisando..." : "Analisar contrato"}
-              </button>
-            </motion.div>
+        <div className="flex justify-between mt-6">
+          {step > 0 && <button onClick={handleBack} className="text-sm px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300">Voltar</button>}
+          {step < steps.length - 1 ? (
+            <button onClick={handleNext} className="ml-auto px-6 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Próximo</button>
+          ) : (
+            <button onClick={handleSubmit} className="ml-auto px-6 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700">Gerar documento</button>
           )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {result && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="mt-10 w-full max-w-2xl bg-white p-6 rounded-2xl shadow-xl text-gray-800"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-semibold">Resumo do contrato</h2>
-                <div className="flex gap-3">
-                  <button onClick={handleCopy} className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg flex items-center gap-1">
-                    <Copy className="w-4 h-4" /> Copiar
-                  </button>
-                  <button onClick={reset} className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg flex items-center gap-1">
-                    <RefreshCcw className="w-4 h-4" /> Novo
-                  </button>
-                </div>
-              </div>
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed bg-[#f9fafb] p-4 rounded-lg border text-gray-700">
-                {result}
-              </pre>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-    </>
+        </div>
+      </motion.div>
+    </main>
   )
 }
