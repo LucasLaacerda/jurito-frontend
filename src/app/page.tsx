@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function JuritoViagemForm() {
   const [step, setStep] = useState(0)
@@ -19,6 +19,9 @@ export default function JuritoViagemForm() {
     valor: "",
     cidade_estado: ""
   })
+
+  const [loading, setLoading] = useState(false)
+  const [peticao, setPeticao] = useState("")
 
   function updateField(field, value) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -77,25 +80,48 @@ export default function JuritoViagemForm() {
     if (step > 0) setStep(step - 1)
   }
 
-  function handleSubmit() {
-    console.log("Formulário final:", form)
-    // Aqui você envia pro backend ou chama a IA
+  async function handleSubmit() {
+    setLoading(true)
+    try {
+      const response = await fetch("https://web-production-5b8e.up.railway.app/gerar-peticao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form)
+      })
+      const data = await response.json()
+      setPeticao(data.peticao || "Erro ao gerar petição.")
+    } catch (error) {
+      setPeticao("Erro ao conectar com o servidor.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-10 bg-gradient-to-b from-[#f0f4ff] to-[#dbeafe]">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-lg">
         <h2 className="text-2xl font-bold mb-6 text-center">✈️ Jurito Viagens</h2>
-        {steps[step]}
 
-        <div className="flex justify-between mt-6">
-          {step > 0 && <button onClick={handleBack} className="text-sm px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300">Voltar</button>}
-          {step < steps.length - 1 ? (
-            <button onClick={handleNext} className="ml-auto px-6 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Próximo</button>
-          ) : (
-            <button onClick={handleSubmit} className="ml-auto px-6 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700">Gerar documento</button>
-          )}
-        </div>
+        {!peticao ? (
+          <>
+            {steps[step]}
+            <div className="flex justify-between mt-6">
+              {step > 0 && <button onClick={handleBack} className="text-sm px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300">Voltar</button>}
+              {step < steps.length - 1 ? (
+                <button onClick={handleNext} className="ml-auto px-6 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Próximo</button>
+              ) : (
+                <button onClick={handleSubmit} disabled={loading} className="ml-auto px-6 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700">
+                  {loading ? "Gerando..." : "Gerar documento"}
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <div>
+            <h3 className="text-lg font-medium mb-4">📄 Petição gerada:</h3>
+            <pre className="whitespace-pre-wrap text-sm bg-gray-100 p-4 rounded-md border max-h-[60vh] overflow-auto">{peticao}</pre>
+          </div>
+        )}
       </motion.div>
     </main>
   )
